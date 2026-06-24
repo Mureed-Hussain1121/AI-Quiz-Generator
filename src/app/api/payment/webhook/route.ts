@@ -1,11 +1,6 @@
-import { NextRequest } from "next/server";
 import { handleWebhook } from "@/lib/payment-handlers";
 
-// Stripe webhooks need the raw body, not parsed JSON
-// Next.js App Router provides raw body by default via req.text()
+// Stripe webhooks require the raw request body.
+// In Next.js App Router, the raw body is available through
+// `await req.text()` inside the handler.
 export const POST = handleWebhook;
-
-// Disable Next.js default body size limit for webhook route
-export const config = {
-  api: { bodyParser: false },
-};
