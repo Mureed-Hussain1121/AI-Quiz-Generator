@@ -1,0 +1,210 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================
+// ENUMS
+// ============================================================
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum SubscriptionStatus {
+  FREE
+  PREMIUM
+  CANCELLED
+  PAST_DUE
+}
+
+enum Difficulty {
+  EASY
+  MEDIUM
+  HARD
+}
+
+enum QuestionType {
+  MCQ
+  TRUE_FALSE
+  SHORT_ANSWER
+  MIXED
+}
+
+// ============================================================
+// AUTH MODELS (required by NextAuth + PrismaAdapter)
+// ============================================================
+
+model User {
+  id                   String             @id @default(cuid())
+  name                 String?
+  email                String             @unique
+  emailVerified        DateTime?
+  image                String?
+  passwordHash         String?
+  role                 Role               @default(USER)
+  subscriptionStatus   SubscriptionStatus @default(FREE)
+  stripeCustomerId     String?            @unique
+  stripeSubscriptionId String?            @unique
+  subscriptionEndsAt   DateTime?
+  isDisabled           Boolean            @default(false)
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+
+  // Relations
+  accounts    Account[]
+  sessions    Session[]
+  pdfs        PDFDocument[]
+  quizzes     Quiz[]
+  attempts    QuizAttempt[]
+  usageLimits UsageLimit[]
+
+  @@map("users")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+// ============================================================
+// PDF DOCUMENTS
+// ============================================================
+
+model PDFDocument {
+  id            String   @id @default(cuid())
+  userId        String
+  fileName      String   // sanitized storage name
+  originalName  String   // original uploaded name
+  fileSize      Int      // bytes
+  storagePath   String   // supabase storage path
+  storageUrl    String?  // public/signed URL
+  extractedText String   @db.Text
+  pageCount     Int?
+  wordCount     Int?
+  createdAt     DateTime @default(now())
+
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  quizzes Quiz[]
+
+  @@map("pdf_documents")
+}
+
+// ============================================================
+// QUIZZES
+// ============================================================
+
+model Quiz {
+  id            String       @id @default(cuid())
+  userId        String
+  pdfDocumentId String?
+  title         String
+  difficulty    Difficulty
+  questionType  QuestionType
+  language      String       @default("English")
+  isPublic      Boolean      @default(false)
+  shareToken    String?      @unique @default(cuid())
+  totalQuestions Int         @default(0)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  pdfDocument PDFDocument? @relation(fields: [pdfDocumentId], references: [id], onDelete: SetNull)
+  questions   Question[]
+  attempts    QuizAttempt[]
+
+  @@map("quizzes")
+}
+
+model Question {
+  id            String  @id @default(cuid())
+  quizId        String
+  type          String  // "mcq" | "true_false" | "short_answer"
+  questionText  String  @db.Text
+  options       Json?   // string[] for MCQ, null for others
+  correctAnswer String  @db.Text
+  explanation   String? @db.Text
+  order         Int     @default(0)
+
+  quiz Quiz @relation(fields: [quizId], references: [id], onDelete: Cascade)
+
+  @@map("questions")
+}
+
+// ============================================================
+// QUIZ ATTEMPTS
+// ============================================================
+
+model QuizAttempt {
+  id             String   @id @default(cuid())
+  userId         String
+  quizId         String
+  score          Int      // number of correct answers
+  totalQuestions Int
+  percentage     Float    // 0-100
+  answers        Json     // { questionId: string, userAnswer: string, isCorrect: boolean }[]
+  timeTaken      Int?     // seconds
+  completedAt    DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  quiz Quiz @relation(fields: [quizId], references: [id], onDelete: Cascade)
+
+  @@map("quiz_attempts")
+}
+
+// ============================================================
+// USAGE TRACKING
+// ============================================================
+
+model UsageLimit {
+  id                   String @id @default(cuid())
+  userId               String
+  month                String // "2024-01" format
+  pdfUploadsUsed       Int    @default(0)
+  quizzesGeneratedUsed Int    @default(0)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, month])
+  @@map("usage_limits")
+}
