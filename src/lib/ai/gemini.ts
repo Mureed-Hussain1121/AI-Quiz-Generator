@@ -68,7 +68,8 @@ IMPORTANT OUTPUT RULES:
 `.trim();
 
     console.log("Prompt length:", prompt.length);
-    console.log("Received params keys:", Object.keys(params as Record<string, unknown>));
+    console.log("Received params keys:", Object.keys(params as object));
+    // console.log("Received params keys:", Object.keys(params as Record<string, unknown>));
     console.log("Difficulty:", (params as any).difficulty);
     console.log("Question count:", (params as any).questionCount);
     console.log("Question types:", (params as any).questionTypes);
