@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
@@ -9,11 +9,18 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Brain, Mail, Lock, Chrome } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/primitives";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { loginSchema, type LoginInput } from "@/lib/validations/auth";
 import { toast } from "@/hooks/use-toast";
 
-export default function LoginPage() {
+function LoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get("callbackUrl") ?? "/dashboard";
@@ -50,9 +57,11 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-purple-50 to-white px-4 py-12">
       <div className="w-full max-w-md">
-        {/* Logo */}
         <div className="text-center mb-8">
-          <Link href="/" className="inline-flex items-center gap-2 font-bold text-xl">
+          <Link
+            href="/"
+            className="inline-flex items-center gap-2 font-bold text-xl"
+          >
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-purple-600 to-indigo-600">
               <Brain className="h-6 w-6 text-white" />
             </div>
@@ -64,14 +73,15 @@ export default function LoginPage() {
 
         <Card className="shadow-lg border-0 bg-white">
           <CardHeader className="space-y-1 pb-4">
-            <CardTitle className="text-2xl font-bold text-center">Welcome back</CardTitle>
+            <CardTitle className="text-2xl font-bold text-center">
+              Welcome back
+            </CardTitle>
             <CardDescription className="text-center">
               Sign in to your account to continue
             </CardDescription>
           </CardHeader>
 
           <CardContent className="space-y-4">
-            {/* Google OAuth */}
             <Button
               variant="outline"
               className="w-full"
@@ -88,11 +98,12 @@ export default function LoginPage() {
                 <span className="w-full border-t" />
               </div>
               <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-white px-2 text-muted-foreground">Or continue with email</span>
+                <span className="bg-white px-2 text-muted-foreground">
+                  Or continue with email
+                </span>
               </div>
             </div>
 
-            {/* Email/Password Form */}
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
               <div className="space-y-1.5">
                 <Label htmlFor="email">Email</Label>
@@ -108,7 +119,9 @@ export default function LoginPage() {
                   />
                 </div>
                 {errors.email && (
-                  <p className="text-xs text-destructive">{errors.email.message}</p>
+                  <p className="text-xs text-destructive">
+                    {errors.email.message}
+                  </p>
                 )}
               </div>
 
@@ -116,6 +129,7 @@ export default function LoginPage() {
                 <div className="flex items-center justify-between">
                   <Label htmlFor="password">Password</Label>
                 </div>
+
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
@@ -127,8 +141,11 @@ export default function LoginPage() {
                     {...register("password")}
                   />
                 </div>
+
                 {errors.password && (
-                  <p className="text-xs text-destructive">{errors.password.message}</p>
+                  <p className="text-xs text-destructive">
+                    {errors.password.message}
+                  </p>
                 )}
               </div>
 
@@ -147,7 +164,10 @@ export default function LoginPage() {
           <CardFooter className="flex flex-col gap-3 pt-0">
             <p className="text-sm text-muted-foreground text-center">
               Don&apos;t have an account?{" "}
-              <Link href="/register" className="text-primary font-medium hover:underline">
+              <Link
+                href="/register"
+                className="text-primary font-medium hover:underline"
+              >
                 Create one free
               </Link>
             </p>
@@ -155,5 +175,13 @@ export default function LoginPage() {
         </Card>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <LoginContent />
+    </Suspense>
   );
 }
